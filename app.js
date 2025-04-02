@@ -95,3 +95,11 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsDiv.innerHTML = `<div class="${type}">${text}</div>`;
     }
 });
+const localImages = {
+    nature: [
+        // Добавьте свои URL здесь
+        'https://example.com/nature1.jpg',
+        'https://example.com/nature2.jpg'
+    ],
+    // ...
+};

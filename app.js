@@ -2,115 +2,103 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchBtn = document.getElementById('searchBtn');
     const searchInput = document.getElementById('searchInput');
     const resultsDiv = document.getElementById('results');
+    const tags = document.querySelectorAll('.tag');
 
-    // Улучшенная база с 60+ изображениями (20 кошек, 20 собак, 20 природы/еды)
-    const imageDatabase = {
-        cats: Array.from({length: 20}, (_, i) => 
-            `https://cdn2.thecatapi.com/images/${i+1}.jpg`),
-        dogs: Array.from({length: 20}, (_, i) => 
-            `https://cdn2.thedogapi.com/images/${String.fromCharCode(97+i)}.jpg`),
-        nature: [
-            'https://source.unsplash.com/random/300x200/?nature',
-            'https://source.unsplash.com/random/300x200/?mountain',
-            'https://source.unsplash.com/random/300x200/?forest',
-            // +17 других вариантов...
-        ],
-        food: [
-            'https://source.unsplash.com/random/300x200/?pizza',
-            'https://source.unsplash.com/random/300x200/?burger',
-            // +18 других вариантов...
-        ]
-    };
+    // Добавляем обработчики для популярных тегов
+    tags.forEach(tag => {
+        tag.addEventListener('click', () => {
+            searchInput.value = tag.textContent;
+            executeSearch();
+        });
+    });
 
-    searchBtn.addEventListener('click', executeSearch);
-    searchInput.addEventListener('keypress', (e) => e.key === 'Enter' && executeSearch());
-
+    // Основная функция поиска
     async function executeSearch() {
-        const query = searchInput.value.trim().toLowerCase();
+        const query = searchInput.value.trim();
         if (!query) {
-            showMessage('✏️ Введите запрос (например: кошки, собаки, природа)', 'error');
+            showMessage('✏️ Введите запрос (например: пицца, кошки, природа)', 'error');
             return;
         }
 
-        showMessage('🔍 Ищем картинки...', 'loading');
+        showLoading();
         searchBtn.disabled = true;
 
         try {
-            const images = await getImagesByQuery(query);
+            // Используем 3 разных API для надежности
+            const images = [
+                ...await fetchPicsumPhotos(query, 4),
+                ...await fetchPlaceholderImages(query, 4),
+                ...await fetchLoremFlickr(query, 4)
+            ].filter(img => img); // Фильтруем пустые значения
+
             displayResults(images);
         } catch (error) {
             console.error('Ошибка:', error);
-            showMessage('⚠️ Ошибка загрузки', 'error');
+            showMessage('⚠️ Не удалось загрузить картинки. Попробуйте другой запрос.', 'error');
         } finally {
             searchBtn.disabled = false;
         }
     }
 
-    function getImagesByQuery(query) {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                let result = [];
-                
-                // Улучшенный анализатор запросов
-                const isCatQuery = /кот|кош|кис|мяу|cat|кот[еёяю]/.test(query);
-                const isDogQuery = /пёс|соба|щен|гав|dog|хаск|овчар/.test(query);
-                const isNatureQuery = /природ|пейзаж|лес|гор|водопад|растен/.test(query);
-                const isFoodQuery = /еда|пицц|бургер|салат|суп|food/.test(query);
-
-                if (isCatQuery) {
-                    result = getRandomItems(imageDatabase.cats, 8);
-                } 
-                else if (isDogQuery) {
-                    result = getRandomItems(imageDatabase.dogs, 8);
-                }
-                else if (isNatureQuery) {
-                    result = getRandomItems(imageDatabase.nature, 8);
-                }
-                else if (isFoodQuery) {
-                    result = getRandomItems(imageDatabase.food, 8);
-                }
-                else {
-                    // Для неизвестных запросов - микс из всех категорий
-                    result = [
-                        ...getRandomItems(imageDatabase.cats, 2),
-                        ...getRandomItems(imageDatabase.dogs, 2),
-                        ...getRandomItems(imageDatabase.nature, 2),
-                        ...getRandomItems(imageDatabase.food, 2)
-                    ];
-                }
-
-                resolve(result);
-            }, 300);
-        });
+    // Источник 1: Picsum Photos
+    async function fetchPicsumPhotos(query, count) {
+        return Array.from({length: count}, (_, i) => 
+            `https://picsum.photos/seed/${query}${i}/300/200`
+        );
     }
 
-    function getRandomItems(array, count) {
-        // Возвращает уникальные случайные элементы
-        const shuffled = [...array].sort(() => 0.5 - Math.random());
-        return shuffled.slice(0, count);
+    // Источник 2: Placeholder.com
+    async function fetchPlaceholderImages(query, count) {
+        return Array.from({length: count}, (_, i) =>
+            `https://via.placeholder.com/300x200/4682B4/FFFFFF?text=${encodeURIComponent(query)}+${i+1}`
+        );
+    }
+
+    // Источник 3: Lorem Flickr
+    async function fetchLoremFlickr(query, count) {
+        return Array.from({length: count}, (_, i) =>
+            `https://loremflickr.com/300/200/${encodeURIComponent(query)}?lock=${i}`
+        );
     }
 
     function displayResults(images) {
         if (!images.length) {
-            showMessage('😕 Ничего не найдено. Попробуйте "кошки", "собаки" или "природа"', 'error');
+            showMessage('😕 Ничего не найдено. Попробуйте "кошки", "собаки" или "пицца"', 'error');
             return;
         }
 
         resultsDiv.innerHTML = images.map((img, i) => `
             <div class="image-card">
-                <img src="${img}?t=${Date.now()}" 
-                     alt="Результат" 
+                <img src="${img}" 
+                     alt="${searchInput.value}"
                      loading="lazy"
-                     onerror="this.src='https://placekitten.com/300/200?image=${i}'">
+                     onerror="this.onerror=null;this.src='https://via.placeholder.com/300x200?text=Картинка+не+загрузилась'">
                 <div class="image-actions">
-                    <a href="${img}" target="_blank">🔍 Открыть</a>
-                    <a href="${img}" download="image_${i}.jpg">⬇️ Скачать</a>
+                    <a href="${img}" target="_blank" rel="noopener noreferrer">
+                        🔍 Открыть
+                    </a>
+                    <a href="${img}" download="image_${i}.jpg">
+                        ⬇️ Скачать
+                    </a>
                 </div>
             </div>
         `).join('');
     }
 
+    function showLoading() {
+        resultsDiv.innerHTML = `
+            <div class="loading">
+                <div class="spinner"></div>
+                Идет поиск картинок...
+            </div>
+        `;
+    }
+
     function showMessage(text, type) {
         resultsDiv.innerHTML = `<div class="${type}">${text}</div>`;
     }
+
+    // Инициируем поиск при загрузке
+    searchInput.value = 'пицца';
+    executeSearch();
 });

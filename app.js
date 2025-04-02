@@ -3,14 +3,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('searchInput');
     const resultsDiv = document.getElementById('results');
 
-    // Кэш для хранения найденных изображений
-    let imageCache = [];
+    // Надежные источники изображений (2024)
+    const imageSources = {
+        nature: [
+            'https://picsum.photos/seed/nature1/300/200',
+            'https://picsum.photos/seed/nature2/300/200',
+            'https://picsum.photos/seed/nature3/300/200'
+        ],
+        animals: [
+            'https://placekitten.com/300/200',
+            'https://placedog.net/300/200',
+            'https://loremflickr.com/300/200/dog'
+        ],
+        food: [
+            'https://loremflickr.com/300/200/food',
+            'https://baconmockup.com/300/200',
+            'https://www.placecage.com/300/200'
+        ]
+    };
 
     searchBtn.addEventListener('click', executeSearch);
     searchInput.addEventListener('keypress', (e) => e.key === 'Enter' && executeSearch());
 
-    async function executeSearch() {
-        const query = searchInput.value.trim();
+    function executeSearch() {
+        const query = searchInput.value.trim().toLowerCase();
         if (!query) {
             showMessage('✏️ Введите поисковый запрос', 'error');
             return;
@@ -19,71 +35,58 @@ document.addEventListener('DOMContentLoaded', () => {
         showMessage('🔍 Ищем картинки...', 'loading');
         searchBtn.disabled = true;
 
-        try {
-            // Используем стабильные источники
-            imageCache = [
-                ...await getNaturePhotos(query),
-                ...await getAnimalPhotos(query),
-                ...await getFoodPhotos(query)
-            ].filter(img => img); // Фильтруем пустые значения
+        // Имитация поиска с задержкой
+        setTimeout(() => {
+            try {
+                let images = [];
+                
+                // Определяем категорию по запросу
+                if (query.includes('природа') || query.includes('пейзаж')) {
+                    images = [...imageSources.nature];
+                } 
+                else if (query.includes('кот') || query.includes('кошка') || query.includes('животн')) {
+                    images = [...imageSources.animals];
+                }
+                else if (query.includes('еда') || query.includes('кулин')) {
+                    images = [...imageSources.food];
+                }
+                else {
+                    // Смешиваем все категории для других запросов
+                    images = [
+                        ...imageSources.nature,
+                        ...imageSources.animals,
+                        ...imageSources.food
+                    ].sort(() => 0.5 - Math.random()).slice(0, 3);
+                }
 
-            if (imageCache.length === 0) {
-                showMessage('😕 Ничего не найдено', 'error');
-                return;
+                displayResults(images);
+            } catch (error) {
+                console.error('Ошибка:', error);
+                showMessage('⚠️ Ошибка загрузки', 'error');
+            } finally {
+                searchBtn.disabled = false;
             }
-
-            displayResults(imageCache);
-        } catch (error) {
-            console.error('Ошибка:', error);
-            showMessage('⚠️ Ошибка загрузки', 'error');
-        } finally {
-            searchBtn.disabled = false;
-        }
-    }
-
-    // 1. Природа (гарантированно работающий источник)
-    async function getNaturePhotos(query) {
-        const baseUrl = 'https://source.unsplash.com/300x200/?';
-        return [
-            `${baseUrl}${encodeURIComponent(query)},nature`,
-            `${baseUrl}${encodeURIComponent(query)},landscape`,
-            `${baseUrl}${encodeURIComponent(query)},water`
-        ];
-    }
-
-    // 2. Животные (резервный источник)
-    async function getAnimalPhotos(query) {
-        const baseUrl = 'https://source.unsplash.com/300x200/?';
-        return [
-            `${baseUrl}${encodeURIComponent(query)},animal`,
-            `${baseUrl}${encodeURIComponent(query)},cat`,
-            `${baseUrl}${encodeURIComponent(query)},dog`
-        ];
-    }
-
-    // 3. Еда (дополнительный источник)
-    async function getFoodPhotos(query) {
-        const baseUrl = 'https://source.unsplash.com/300x200/?';
-        return [
-            `${baseUrl}${encodeURIComponent(query)},food`,
-            `${baseUrl}${encodeURIComponent(query)},fruit`,
-            `${baseUrl}${encodeURIComponent(query)},dessert`
-        ];
+        }, 800); // Задержка для имитации реального поиска
     }
 
     function displayResults(images) {
+        if (!images || images.length === 0) {
+            showMessage('😕 Ничего не найдено', 'error');
+            return;
+        }
+
         resultsDiv.innerHTML = images.map((img, index) => `
-            <div class="image-card" data-id="${index}">
-                <img src="${img}" 
+            <div class="image-card">
+                <img src="${img}?${Date.now()}" 
                      alt="Результат поиска"
-                     onerror="this.onerror=null;this.src='https://via.placeholder.com/300x200?text=Image+Error'">
+                     onerror="this.onerror=null;this.src='https://via.placeholder.com/300x200?text=Изображение+не+загружено'">
                 <div class="image-actions">
                     <button onclick="window.open('${img}', '_blank')">
                         🔍 Открыть
                     </button>
-                    <button onclick="downloadImage('${img}', 'image_${index}.jpg')">
+                    <a href="${img}" download="image_${index}.jpg">
                         ⬇️ Скачать
-                    </button>
+                    </a>
                 </div>
             </div>
         `).join('');
@@ -93,16 +96,3 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsDiv.innerHTML = `<div class="${type}">${text}</div>`;
     }
 });
-
-// Функция для скачивания (добавляем в глобальную область видимости)
-function downloadImage(url, filename) {
-    fetch(url)
-        .then(response => response.blob())
-        .then(blob => {
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = filename;
-            link.click();
-        })
-        .catch(() => alert('Не удалось скачать изображение'));
-}

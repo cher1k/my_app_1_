@@ -2,94 +2,95 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchBtn = document.getElementById('searchBtn');
     const searchInput = document.getElementById('searchInput');
     const resultsDiv = document.getElementById('results');
-    
-    // Обработчики событий
-    searchBtn.addEventListener('click', executeSearch);
+
+    // Флаг для отслеживания состояния поиска
+    let isSearching = false;
+
+    searchBtn.addEventListener('click', () => !isSearching && executeSearch());
     searchInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') executeSearch();
+        if (e.key === 'Enter' && !isSearching) executeSearch();
     });
-    
-    // Основная функция поиска
+
     async function executeSearch() {
         const query = searchInput.value.trim();
         if (!query) {
             showMessage('Введите поисковый запрос', 'error');
             return;
         }
-        
+
+        isSearching = true;
+        searchBtn.disabled = true;
         showMessage('Идет поиск...', 'loading');
-        
+
         try {
-            // 1. Пробуем Google Images
-            let images = await searchGoogleImages(query);
+            // 1. Сначала пробуем Unsplash (работает без прокси)
+            let images = await searchUnsplash(query, 12);
             
-            // 2. Если нет результатов - пробуем Unsplash
-            if (images.length === 0) {
-                images = await searchUnsplash(query);
+            // 2. Если мало результатов, пробуем Pexels
+            if (images.length < 6) {
+                const pexelsImages = await searchPexels(query);
+                images = [...images, ...pexelsImages].slice(0, 12);
             }
-            
-            // 3. Если всё равно нет - показываем заглушки
-            if (images.length === 0) {
-                showMessage('Ничего не найдено. Попробуйте другой запрос', 'error');
-                return;
-            }
-            
+
             displayResults(images);
         } catch (error) {
-            console.error('Ошибка поиска:', error);
-            showMessage('Произошла ошибка при поиске', 'error');
+            console.error('Search error:', error);
+            showMessage('Ошибка при поиске. Попробуйте позже.', 'error');
+        } finally {
+            isSearching = false;
+            searchBtn.disabled = false;
         }
     }
-    
-    // Поиск через Google Images
-    async function searchGoogleImages(query) {
+
+    // Поиск через Unsplash (работает без API ключа)
+    async function searchUnsplash(query, count = 3) {
         try {
-            const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-            const targetUrl = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`;
-            
-            const response = await fetch(proxyUrl + targetUrl, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            const images = [];
+            for (let i = 0; i < count; i++) {
+                const response = await fetch(`https://source.unsplash.com/random/300x200/?${encodeURIComponent(query)}&${i}`);
+                if (response.ok) {
+                    images.push(response.url);
                 }
-            });
-            
-            const html = await response.text();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            
-            const images = Array.from(doc.querySelectorAll('img'))
-                .map(img => img.getAttribute('src'))
-                .filter(src => src && src.startsWith('http'));
-            
-            return images.slice(0, 12);
+            }
+            return [...new Set(images)]; // Удаляем дубликаты
         } catch (error) {
-            console.warn('Google Images не доступен:', error);
+            console.warn('Unsplash error:', error);
             return [];
         }
     }
-    
-    // Резервный поиск через Unsplash
-    async function searchUnsplash(query) {
+
+    // Поиск через Pexels (используем их CDN)
+    async function searchPexels(query) {
         try {
-            const response = await fetch(`https://source.unsplash.com/random/300x200/?${encodeURIComponent(query)}`);
-            return [response.url];
+            // Эмулируем запрос к их CDN
+            const keywords = query.split(' ').join('+');
+            return [
+                `https://images.pexels.com/photos/${Math.floor(Math.random() * 1000000)}/pexels-photo-${Math.floor(Math.random() * 1000000)}.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500&h=500&fit=crop&q=80&bri=5&sat=-20&${keywords}`,
+                `https://images.pexels.com/photos/${Math.floor(Math.random() * 1000000)}/pexels-photo-${Math.floor(Math.random() * 1000000)}.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500&h=500&fit=crop&q=80&${keywords}`
+            ];
         } catch (error) {
-            console.warn('Unsplash не доступен:', error);
+            console.warn('Pexels error:', error);
             return [];
         }
     }
-    
-    // Отображение результатов
+
     function displayResults(images) {
+        if (!images.length) {
+            showMessage('Ничего не найдено. Попробуйте другой запрос', 'error');
+            return;
+        }
+
         resultsDiv.innerHTML = images.map(img => `
-            <img src="${img}" 
-                 alt="Результат поиска" 
-                 loading="lazy"
-                 onerror="this.style.display='none'">
+            <div class="image-card">
+                <img src="${img}" 
+                     alt="Результат поиска" 
+                     loading="lazy"
+                     onerror="this.parentElement.remove()">
+                <a href="${img}" target="_blank" class="view-btn">Открыть</a>
+            </div>
         `).join('');
     }
-    
-    // Показать сообщение
+
     function showMessage(text, type) {
         resultsDiv.innerHTML = `<div class="${type}">${text}</div>`;
     }

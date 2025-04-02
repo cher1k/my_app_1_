@@ -3,21 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ИИ Поисковик картинок</title>
+    <title>Умный поиск картинок</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
 </head>
 <body>
-    <div class="app-container">
-        <header>
-            <h1>🔍 ИИ Поисковик</h1>
-            <div class="search-bar">
-                <input type="text" id="searchInput" placeholder="Найти мемы, картинки...">
-                <button id="searchBtn">Поиск</button>
-            </div>
-        </header>
-        <main id="resultsContainer"></main>
+    <div class="container">
+        <h1>🌍 Поиск картинок в интернете</h1>
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Введите запрос...">
+            <button id="searchBtn">Найти</button>
+        </div>
+        <div id="results" class="image-grid"></div>
     </div>
-    <script src="app.js" type="module"></script>
+    <script src="app.js"></script>
 </body>
 </html>

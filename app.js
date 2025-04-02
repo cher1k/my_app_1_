@@ -1,20 +1,49 @@
 document.addEventListener('DOMContentLoaded', () => {
     const searchBtn = document.getElementById('searchBtn');
     const searchInput = document.getElementById('searchInput');
-    const resultsContainer = document.getElementById('resultsContainer');
-
-    // Новый обработчик поиска
-    searchBtn.addEventListener('click', async () => {
+    const resultsDiv = document.getElementById('results');
+    
+    // Обработчики событий
+    searchBtn.addEventListener('click', executeSearch);
+    searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') executeSearch();
+    });
+    
+    // Основная функция поиска
+    async function executeSearch() {
         const query = searchInput.value.trim();
         if (!query) {
-            alert('Введите поисковый запрос');
+            showMessage('Введите поисковый запрос', 'error');
             return;
         }
-
-        showLoading();
+        
+        showMessage('Идет поиск...', 'loading');
         
         try {
-            // Используем прокси-сервер для обхода CORS
+            // 1. Пробуем Google Images
+            let images = await searchGoogleImages(query);
+            
+            // 2. Если нет результатов - пробуем Unsplash
+            if (images.length === 0) {
+                images = await searchUnsplash(query);
+            }
+            
+            // 3. Если всё равно нет - показываем заглушки
+            if (images.length === 0) {
+                showMessage('Ничего не найдено. Попробуйте другой запрос', 'error');
+                return;
+            }
+            
+            displayResults(images);
+        } catch (error) {
+            console.error('Ошибка поиска:', error);
+            showMessage('Произошла ошибка при поиске', 'error');
+        }
+    }
+    
+    // Поиск через Google Images
+    async function searchGoogleImages(query) {
+        try {
             const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
             const targetUrl = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`;
             
@@ -25,52 +54,43 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             
             const html = await response.text();
-            const images = parseGoogleImages(html);
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
             
-            if (images.length > 0) {
-                displayResults(images);
-            } else {
-                showError(new Error('Ничего не найдено'));
-            }
+            const images = Array.from(doc.querySelectorAll('img'))
+                .map(img => img.getAttribute('src'))
+                .filter(src => src && src.startsWith('http'));
+            
+            return images.slice(0, 12);
         } catch (error) {
-            showError(error);
+            console.warn('Google Images не доступен:', error);
+            return [];
         }
-    });
-
-    // Парсинг HTML Google Images
-    function parseGoogleImages(html) {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        const images = [];
-        
-        doc.querySelectorAll('img').forEach(img => {
-            const src = img.getAttribute('src');
-            if (src && src.startsWith('http')) {
-                images.push(src);
-            }
-        });
-        
-        return images.slice(0, 12); // Возвращаем первые 12 картинок
     }
-
+    
+    // Резервный поиск через Unsplash
+    async function searchUnsplash(query) {
+        try {
+            const response = await fetch(`https://source.unsplash.com/random/300x200/?${encodeURIComponent(query)}`);
+            return [response.url];
+        } catch (error) {
+            console.warn('Unsplash не доступен:', error);
+            return [];
+        }
+    }
+    
+    // Отображение результатов
     function displayResults(images) {
-        resultsContainer.innerHTML = images.map(img => `
-            <div class="card">
-                <img src="${img}" alt="Результат поиска" loading="lazy">
-            </div>
+        resultsDiv.innerHTML = images.map(img => `
+            <img src="${img}" 
+                 alt="Результат поиска" 
+                 loading="lazy"
+                 onerror="this.style.display='none'">
         `).join('');
     }
-
-    function showLoading() {
-        resultsContainer.innerHTML = '<div class="loading">Идет поиск... ⏳</div>';
-    }
-
-    function showError(error) {
-        resultsContainer.innerHTML = `
-            <div class="loading">
-                Ошибка: ${error.message}
-                <button onclick="location.reload()">Попробовать снова</button>
-            </div>
-        `;
+    
+    // Показать сообщение
+    function showMessage(text, type) {
+        resultsDiv.innerHTML = `<div class="${type}">${text}</div>`;
     }
 });

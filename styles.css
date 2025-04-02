@@ -1,74 +1,196 @@
-/* Анимация загрузки */
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+:root {
+    --primary: #E60023;
+    --secondary: #EFEFEF;
+    --text: #333;
+    --light: #fff;
+    --dark: #111;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Montserrat', sans-serif;
+    background: #f9f9f9;
+    color: var(--text);
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+header h1 {
+    color: var(--primary);
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.search-container {
+    background: var(--light);
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.search-box {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 1rem;
+}
+
+#searchInput {
+    flex: 1;
+    padding: 12px 15px;
+    border: 2px solid #ddd;
+    border-radius: 24px;
+    font-size: 1rem;
+    transition: all 0.3s;
+}
+
+#searchInput:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(230,0,35,0.2);
+}
+
+#searchBtn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 24px;
+    padding: 0 24px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+#searchBtn:hover {
+    background: #c5001e;
+    transform: translateY(-2px);
+}
+
+.sources-tabs {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.source-btn {
+    background: var(--secondary);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.source-btn.active {
+    background: var(--primary);
+    color: white;
+}
+
+.image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 2rem;
+}
+
+.image-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    transition: all 0.3s;
+}
+
+.image-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+}
+
+.image-card img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-bottom: 1px solid #eee;
+}
+
+.image-actions {
+    display: flex;
+    padding: 12px;
+    gap: 8px;
+}
+
+.image-actions a {
+    flex: 1;
+    text-align: center;
+    padding: 8px;
+    background: var(--secondary);
+    color: var(--text);
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.image-actions a:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.pinterest-widget {
+    width: 100%;
+    min-height: 500px;
+    margin-bottom: 2rem;
+}
+
+.hidden {
+    display: none;
 }
 
 .loading {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1rem;
+    justify-content: center;
     padding: 2rem;
-    color: #4361ee;
+    gap: 1rem;
 }
 
 .spinner {
     width: 40px;
     height: 40px;
-    border: 4px solid rgba(67, 97, 238, 0.2);
-    border-top: 4px solid #4361ee;
+    border: 4px solid rgba(230,0,35,0.2);
+    border-top: 4px solid var(--primary);
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
 
-/* Улучшенные карточки */
-.image-card {
-    position: relative;
-    overflow: hidden;
-    transition: transform 0.3s;
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
-.image-card:hover {
-    transform: scale(1.03);
-}
-
-.image-actions {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(0,0,0,0.7);
-    display: flex;
-    justify-content: space-around;
-    padding: 10px;
-    transform: translateY(100%);
-    transition: transform 0.3s;
-}
-
-.image-card:hover .image-actions {
-    transform: translateY(0);
-}
-
-.image-actions a {
-    color: white;
-    padding: 5px 10px;
-    border-radius: 4px;
-    text-decoration: none;
-    font-size: 14px;
-}
-
-.image-actions a:hover {
-    background: rgba(255,255,255,0.2);
-} 
-.pinterest-container {
-    margin: 20px 0;
-    min-height: 500px;
-}
-
-/* Адаптивность виджета */
 @media (max-width: 768px) {
-    .pinterest-container {
-        margin: 10px 0;
+    .image-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     }
-} 
+    
+    header h1 {
+        font-size: 2rem;
+    }
+}

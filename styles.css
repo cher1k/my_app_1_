@@ -60,4 +60,15 @@
 
 .image-actions a:hover {
     background: rgba(255,255,255,0.2);
+} 
+.pinterest-container {
+    margin: 20px 0;
+    min-height: 500px;
 }
+
+/* Адаптивность виджета */
+@media (max-width: 768px) {
+    .pinterest-container {
+        margin: 10px 0;
+    }
+} 

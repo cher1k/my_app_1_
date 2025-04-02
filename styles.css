@@ -1,0 +1,84 @@
+:root {
+    --primary: #4285f4;
+    --secondary: #34a853;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #f8f9fa;
+}
+
+.app-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.search-bar {
+    display: flex;
+    gap: 0.5rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+#searchInput {
+    flex: 1;
+    padding: 0.75rem;
+    border: 2px solid #dfe1e5;
+    border-radius: 24px;
+    font-size: 1rem;
+}
+
+#searchBtn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 24px;
+    padding: 0 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+    #searchBtn:hover {
+        background: #3367d6;
+        transform: translateY(-2px);
+    }
+
+#resultsContainer {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.card {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+}
+
+    .card:hover {
+        transform: scale(1.03);
+    }
+
+    .card img {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+    }
+
+.loading {
+    text-align: center;
+    font-size: 1.2rem;
+    color: #5f6368;
+    padding: 2rem;
+}

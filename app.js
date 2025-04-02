@@ -3,22 +3,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('searchInput');
     const resultsDiv = document.getElementById('results');
 
-    // Надежные источники изображений (2024)
-    const imageSources = {
+    // Локальные изображения-заглушки (работают всегда)
+    const localImages = {
         nature: [
-            'https://picsum.photos/seed/nature1/300/200',
-            'https://picsum.photos/seed/nature2/300/200',
-            'https://picsum.photos/seed/nature3/300/200'
+            'https://www.gstatic.com/webp/gallery/1.jpg',
+            'https://www.gstatic.com/webp/gallery/2.jpg',
+            'https://www.gstatic.com/webp/gallery/4.jpg'
         ],
         animals: [
-            'https://placekitten.com/300/200',
-            'https://placedog.net/300/200',
-            'https://loremflickr.com/300/200/dog'
+            'https://upload.wikimedia.org/wikipedia/commons/4/4d/Cat_November_2010-1a.jpg',
+            'https://upload.wikimedia.org/wikipedia/commons/3/3a/Cat03.jpg',
+            'https://upload.wikimedia.org/wikipedia/commons/6/66/An_up-close_picture_of_a_curious_male_domestic_shorthair_tabby_cat.jpg'
         ],
         food: [
-            'https://loremflickr.com/300/200/food',
-            'https://baconmockup.com/300/200',
-            'https://www.placecage.com/300/200'
+            'https://upload.wikimedia.org/wikipedia/commons/6/6d/Good_Food_Display_-_NCI_Visuals_Online.jpg',
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Weekend_brunch.jpg/1200px-Weekend_brunch.jpg',
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/Pizza_%281%29.jpg/1200px-Pizza_%281%29.jpg'
         ]
     };
 
@@ -35,27 +35,26 @@ document.addEventListener('DOMContentLoaded', () => {
         showMessage('🔍 Ищем картинки...', 'loading');
         searchBtn.disabled = true;
 
-        // Имитация поиска с задержкой
         setTimeout(() => {
             try {
                 let images = [];
                 
-                // Определяем категорию по запросу
-                if (query.includes('природа') || query.includes('пейзаж')) {
-                    images = [...imageSources.nature];
+                // Определяем категорию
+                if (/природ|пейзаж|лес|гора/.test(query)) {
+                    images = [...localImages.nature];
                 } 
-                else if (query.includes('кот') || query.includes('кошка') || query.includes('животн')) {
-                    images = [...imageSources.animals];
+                else if (/кот|кош|живот|пёс|собак/.test(query)) {
+                    images = [...localImages.animals];
                 }
-                else if (query.includes('еда') || query.includes('кулин')) {
-                    images = [...imageSources.food];
+                else if (/еда|кулин|пицц|бургер/.test(query)) {
+                    images = [...localImages.food];
                 }
                 else {
-                    // Смешиваем все категории для других запросов
+                    // Смешиваем все категории
                     images = [
-                        ...imageSources.nature,
-                        ...imageSources.animals,
-                        ...imageSources.food
+                        ...localImages.nature,
+                        ...localImages.animals,
+                        ...localImages.food
                     ].sort(() => 0.5 - Math.random()).slice(0, 3);
                 }
 
@@ -66,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } finally {
                 searchBtn.disabled = false;
             }
-        }, 800); // Задержка для имитации реального поиска
+        }, 500);
     }
 
     function displayResults(images) {
@@ -77,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         resultsDiv.innerHTML = images.map((img, index) => `
             <div class="image-card">
-                <img src="${img}?${Date.now()}" 
+                <img src="${img}" 
                      alt="Результат поиска"
                      onerror="this.onerror=null;this.src='https://via.placeholder.com/300x200?text=Изображение+не+загружено'">
                 <div class="image-actions">

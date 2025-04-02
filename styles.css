@@ -155,3 +155,45 @@ h1 {
     40% { content: '..'; }
     60%, 100% { content: '...'; }
 }
+/* Добавьте эти стили */
+.image-card {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s;
+}
+
+.image-card:hover {
+    transform: scale(1.02);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.image-actions {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    justify-content: space-around;
+    padding: 8px;
+    transform: translateY(100%);
+    transition: transform 0.3s;
+}
+
+.image-card:hover .image-actions {
+    transform: translateY(0);
+}
+
+.image-actions a {
+    color: white;
+    text-decoration: none;
+    font-size: 14px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.2);
+}
+
+.image-actions a:hover {
+    background: #4285f4;
+}

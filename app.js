@@ -3,90 +3,78 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('searchInput');
     const resultsDiv = document.getElementById('results');
 
-    // Флаг для отслеживания состояния поиска
-    let isSearching = false;
-
-    searchBtn.addEventListener('click', () => !isSearching && executeSearch());
-    searchInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && !isSearching) executeSearch();
-    });
+    searchBtn.addEventListener('click', executeSearch);
+    searchInput.addEventListener('keypress', (e) => e.key === 'Enter' && executeSearch());
 
     async function executeSearch() {
         const query = searchInput.value.trim();
         if (!query) {
-            showMessage('Введите поисковый запрос', 'error');
+            showMessage('✏️ Введите запрос', 'error');
             return;
         }
 
-        isSearching = true;
+        showMessage('🔍 Ищем картинки...', 'loading');
         searchBtn.disabled = true;
-        showMessage('Идет поиск...', 'loading');
 
         try {
-            // 1. Сначала пробуем Unsplash (работает без прокси)
-            let images = await searchUnsplash(query, 12);
-            
-            // 2. Если мало результатов, пробуем Pexels
-            if (images.length < 6) {
-                const pexelsImages = await searchPexels(query);
-                images = [...images, ...pexelsImages].slice(0, 12);
-            }
+            // Используем комбинацию источников
+            const images = [
+                ...await getPicsumPhotos(query),
+                ...await getPlaceholderImages(query)
+            ].slice(0, 12); // Ограничиваем 12 результатами
 
             displayResults(images);
         } catch (error) {
-            console.error('Search error:', error);
-            showMessage('Ошибка при поиске. Попробуйте позже.', 'error');
+            console.error('Ошибка:', error);
+            showMessage('😞 Не удалось загрузить картинки', 'error');
         } finally {
-            isSearching = false;
             searchBtn.disabled = false;
         }
     }
 
-    // Поиск через Unsplash (работает без API ключа)
-    async function searchUnsplash(query, count = 3) {
+    // 1. Picsum Photos - реалистичные изображения
+    async function getPicsumPhotos(query) {
         try {
-            const images = [];
-            for (let i = 0; i < count; i++) {
-                const response = await fetch(`https://source.unsplash.com/random/300x200/?${encodeURIComponent(query)}&${i}`);
-                if (response.ok) {
-                    images.push(response.url);
-                }
-            }
-            return [...new Set(images)]; // Удаляем дубликаты
-        } catch (error) {
-            console.warn('Unsplash error:', error);
+            const num = Math.floor(Math.random() * 1000);
+            return [
+                `https://picsum.photos/seed/${query}1/300/200`,
+                `https://picsum.photos/seed/${query}2/300/200`,
+                `https://picsum.photos/seed/${query}3/300/200`
+            ];
+        } catch {
             return [];
         }
     }
 
-    // Поиск через Pexels (используем их CDN)
-    async function searchPexels(query) {
-        try {
-            // Эмулируем запрос к их CDN
-            const keywords = query.split(' ').join('+');
-            return [
-                `https://images.pexels.com/photos/${Math.floor(Math.random() * 1000000)}/pexels-photo-${Math.floor(Math.random() * 1000000)}.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500&h=500&fit=crop&q=80&bri=5&sat=-20&${keywords}`,
-                `https://images.pexels.com/photos/${Math.floor(Math.random() * 1000000)}/pexels-photo-${Math.floor(Math.random() * 1000000)}.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500&h=500&fit=crop&q=80&${keywords}`
-            ];
-        } catch (error) {
-            console.warn('Pexels error:', error);
-            return [];
-        }
+    // 2. Placeholder - резервный источник
+    async function getPlaceholderImages(query) {
+        const keywords = encodeURIComponent(query);
+        return [
+            `https://placekitten.com/300/200?image=${Math.floor(Math.random() * 16)}`,
+            `https://placeholder.com/300x200.png?text=${keywords}`,
+            `https://baconmockup.com/300/200`
+        ];
     }
 
     function displayResults(images) {
         if (!images.length) {
-            showMessage('Ничего не найдено. Попробуйте другой запрос', 'error');
+            showMessage('🤷 Ничего не найдено', 'error');
             return;
         }
 
         resultsDiv.innerHTML = images.map(img => `
             <div class="image-card">
                 <img src="${img}" 
-                     alt="Результат поиска" 
-                     loading="lazy"
-                     onerror="this.parentElement.remove()">
-                <a href="${img}" target="_blank" class="view-btn">Открыть</a>
+                     alt="Результат поиска"
+                     onerror="this.src='https://placeholder.com/300x200.png?text=Image+Error'">
+                <div class="image-actions">
+                    <a href="${img}" target="_blank" download="${img.split('/').pop()}">
+                        ⬇️ Скачать
+                    </a>
+                    <a href="${img}" target="_blank">
+                        🔍 Открыть
+                    </a>
+                </div>
             </div>
         `).join('');
     }

@@ -1,167 +1,166 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // Элементы DOM
-    const searchBtn = document.getElementById('searchBtn');
-    const searchInput = document.getElementById('searchInput');
-    const resultsDiv = document.getElementById('results');
-    const pinterestContainer = document.getElementById('pinterestContainer');
-    const loadingIndicator = document.getElementById('loading');
-    const sourceBtns = document.querySelectorAll('.source-btn');
+// Инициализация нейросети
+let model;
+let use;
+const userPreferences = JSON.parse(localStorage.getItem('aiPreferences')) || {};
 
-    // Локальная база изображений
-    const localImages = {
-        'кошки': [
-            'https://img.freepik.com/free-photo/red-white-cat-i-white-studio_155003-13189.jpg',
-            'https://img.freepik.com/free-photo/beautiful-kitten-with-colorful-flowers-around_23-2148982299.jpg'
-        ],
-        'пицца': [
-            'https://img.freepik.com/free-photo/top-view-pepperoni-pizza_141793-2158.jpg',
-            'https://img.freepik.com/free-photo/tasty-pizza-with-ingredients_23-2148796398.jpg'
-        ]
-    };
+// Загрузка моделей TensorFlow
+async function loadModels() {
+    console.log("Загрузка моделей ИИ...");
+    [model, use] = await Promise.all([
+        tf.loadLayersModel('https://storage.googleapis.com/tfjs-models/tfjs/sentiment_cnn_v1/model.json'),
+        use.load()
+    ]);
+    console.log("Модели ИИ загружены");
+}
 
-    // Текущий источник
-    let currentSource = 'pinterest';
+// Обработка поискового запроса
+async function processSearch() {
+    const query = document.getElementById('searchInput').value.trim();
+    if (!query) return;
 
-    // Обработчики событий
-    searchBtn.addEventListener('click', executeSearch);
-    searchInput.addEventListener('keypress', (e) => e.key === 'Enter' && executeSearch());
-    
-    sourceBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            sourceBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentSource = btn.dataset.source;
-            if (searchInput.value.trim()) executeSearch();
-        });
-    });
+    showLoading(true);
+    clearResults();
 
-    // Основная функция поиска
-    async function executeSearch() {
-        const query = searchInput.value.trim();
-        if (!query) {
-            showMessage('Введите поисковый запрос', 'error');
-            return;
-        }
+    try {
+        // Анализ запроса нейросетью
+        const embeddings = await use.embed(query);
+        const prediction = model.predict(embeddings);
+        const sentiment = prediction.dataSync()[0];
 
-        showLoading();
-        clearResults();
+        // Поиск изображений (имитация)
+        const images = await searchImages(query, sentiment);
 
-        try {
-            switch(currentSource) {
-                case 'pinterest':
-                    showPinterestWidget(query);
-                    break;
-                case 'local':
-                    showLocalImages(query);
-                    break;
-                case 'all':
-                    showAllSources(query);
-                    break;
-            }
-        } catch (error) {
-            console.error('Ошибка:', error);
-            showMessage('Произошла ошибка при поиске', 'error');
-        } finally {
-            hideLoading();
-        }
-    }
-
-    // Показать виджет Pinterest
-    function showPinterestWidget(query) {
-        resultsDiv.classList.add('hidden');
-        pinterestContainer.classList.remove('hidden');
-        
-        const widget = pinterestContainer.querySelector('a');
-        widget.href = `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(query)}`;
-        
-        // Переинициализация виджета
-        if (window.PinUtils) {
-            window.PinUtils.build();
-        }
-    }
-
-    // Показать локальные изображения
-    function showLocalImages(query) {
-        pinterestContainer.classList.add('hidden');
-        resultsDiv.classList.remove('hidden');
-        
-        const images = localImages[query.toLowerCase()] || [];
+        // Показ результатов
         displayResults(images);
-    }
+        showAIResponse(`ИИ обработал запрос: "${query}". ${getSentimentText(sentiment)}`);
 
-    // Показать все источники
-    async function showAllSources(query) {
-        pinterestContainer.classList.add('hidden');
-        resultsDiv.classList.remove('hidden');
-        
-        // 1. Локальные изображения
-        const localResults = localImages[query.toLowerCase()] || [];
-        
-        // 2. Изображения с внешних API
-        const apiResults = await fetchExternalImages(query);
-        
-        // Объединяем результаты
-        const allResults = [...localResults, ...apiResults];
-        displayResults(allResults);
-    }
+        // Сохранение в историю
+        if (!userPreferences.queries) userPreferences.queries = {};
+        userPreferences.queries[query] = { sentiment, timestamp: Date.now() };
+        savePreferences();
 
-    // Загрузка изображений с внешних API
-    async function fetchExternalImages(query) {
-        try {
-            const responses = await Promise.all([
-                fetch(`https://source.unsplash.com/300x200/?${encodeURIComponent(query)}`),
-                fetch(`https://loremflickr.com/json/300/200/${encodeURIComponent(query)}`)
-            ]);
+    } catch (error) {
+        console.error("Ошибка:", error);
+        showAIResponse("Произошла ошибка при обработке запроса", true);
+    } finally {
+        showLoading(false);
+    }
+}
+
+// Имитация поиска изображений
+async function searchImages(query, sentiment) {
+    // В реальном приложении здесь будет API Pinterest или других сервисов
+    return new Promise(resolve => {
+        setTimeout(() => {
+            const count = sentiment > 0.6 ? 9 : 6; // Больше результатов для позитивных запросов
+            const images = [];
             
-            return responses.filter(r => r.ok).map(r => r.url);
-        } catch {
-            return [];
-        }
-    }
+            for (let i = 0; i < count; i++) {
+                images.push({
+                    url: `https://source.unsplash.com/random/300x200/?${encodeURIComponent(query)}${i}`,
+                    id: `${query}-${i}`
+                });
+            }
+            
+            resolve(images);
+        }, 800);
+    });
+}
 
-    // Отображение результатов
-    function displayResults(images) {
-        if (!images.length) {
-            showMessage('Ничего не найдено', 'info');
-            return;
-        }
-
-        resultsDiv.innerHTML = images.map((img, i) => `
-            <div class="image-card">
-                <img src="${img}" 
-                     alt="Результат поиска"
-                     loading="lazy"
-                     onerror="this.onerror=null;this.src='https://via.placeholder.com/300x200?text=Изображение+не+загружено'">
-                <div class="image-actions">
-                    <a href="${img}" target="_blank" rel="noopener">🔍 Открыть</a>
-                    <a href="${img}" download="image_${i}.jpg">⬇️ Скачать</a>
+// Отображение результатов
+function displayResults(images) {
+    const container = document.getElementById('results');
+    container.innerHTML = images.map(img => `
+        <div class="card">
+            <img src="${img.url}" alt="${img.id}" loading="lazy">
+            <div class="card-content">
+                <div class="feedback-buttons">
+                    <button class="feedback-btn like-btn" data-id="${img.id}">👍 Нравится</button>
+                    <button class="feedback-btn dislike-btn" data-id="${img.id}">👎 Не нравится</button>
                 </div>
             </div>
-        `).join('');
-    }
+        </div>
+    `).join('');
 
-    // Вспомогательные функции
-    function showLoading() {
-        loadingIndicator.classList.remove('hidden');
-    }
+    // Обработчики feedback
+    document.querySelectorAll('.like-btn').forEach(btn => {
+        btn.addEventListener('click', () => handleFeedback(btn.dataset.id, true));
+    });
+    
+    document.querySelectorAll('.dislike-btn').forEach(btn => {
+        btn.addEventListener('click', () => handleFeedback(btn.dataset.id, false));
+    });
+}
 
-    function hideLoading() {
-        loadingIndicator.classList.add('hidden');
-    }
+// Обработка пользовательского feedback
+function handleFeedback(imageId, isPositive) {
+    if (!userPreferences.feedback) userPreferences.feedback = {};
+    userPreferences.feedback[imageId] = isPositive;
+    savePreferences();
+    
+    showAIResponse(`Спасибо! ИИ учтет ваше ${isPositive ? 'предпочтение' : 'неодобрение'} для улучшения результатов.`);
+}
 
-    function clearResults() {
-        resultsDiv.innerHTML = '';
-    }
+// Вспомогательные функции
+function showLoading(show) {
+    document.getElementById('loading').style.display = show ? 'block' : 'none';
+}
 
-    function showMessage(text, type) {
-        resultsDiv.innerHTML = `<div class="message ${type}">${text}</div>`;
-    }
+function clearResults() {
+    document.getElementById('results').innerHTML = '';
+}
 
-    // Инициализация
-    function init() {
-        searchInput.value = 'кошки';
-        executeSearch();
-    }
+function showAIResponse(message, isError = false) {
+    const el = document.getElementById('aiResponse');
+    el.textContent = message;
+    el.style.display = 'block';
+    el.style.background = isError ? '#ffebee' : '#e3f2fd';
+    el.style.color = isError ? '#c62828' : '#1565c0';
+}
 
-    init();
+function getSentimentText(score) {
+    if (score > 0.7) return "Запрос распознан как позитивный";
+    if (score < 0.3) return "Запрос распознан как негативный";
+    return "Запрос распознан как нейтральный";
+}
+
+function savePreferences() {
+    localStorage.setItem('aiPreferences', JSON.stringify(userPreferences));
+}
+
+// Инициализация
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadModels();
+    
+    document.getElementById('searchBtn').addEventListener('click', processSearch);
+    document.getElementById('searchInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') processSearch();
+    });
+    
+    // Первый запрос при загрузке
+    document.getElementById('searchInput').value = "красивые пейзажи";
+    processSearch();
 }); 
+
+async function searchImages(query) {
+    const response = await fetch(`https://api.pinterest.com/v3/search/?query=${query}`);
+    const data = await response.json();
+    return data.pins.map(pin => ({
+        url: pin.image.original.url,
+        id: pin.id
+    }));
+} 
+
+// Добавьте после loadModels()
+async function retrainModel() {
+    // Ваша логика дообучения на основе userPreferences
+} 
+
+async function searchImages(query) {
+    const [pins, unsplash] = await Promise.all([
+        fetchPinterest(query),
+        fetchUnsplash(query)
+    ]);
+    return [...pins, ...unsplash];
+} 
+

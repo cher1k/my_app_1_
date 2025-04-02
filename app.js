@@ -3,13 +3,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('searchInput');
     const resultsDiv = document.getElementById('results');
 
+    // Кэш для хранения найденных изображений
+    let imageCache = [];
+
     searchBtn.addEventListener('click', executeSearch);
     searchInput.addEventListener('keypress', (e) => e.key === 'Enter' && executeSearch());
 
     async function executeSearch() {
         const query = searchInput.value.trim();
         if (!query) {
-            showMessage('✏️ Введите запрос', 'error');
+            showMessage('✏️ Введите поисковый запрос', 'error');
             return;
         }
 
@@ -17,63 +20,70 @@ document.addEventListener('DOMContentLoaded', () => {
         searchBtn.disabled = true;
 
         try {
-            // Используем комбинацию источников
-            const images = [
-                ...await getPicsumPhotos(query),
-                ...await getPlaceholderImages(query)
-            ].slice(0, 12); // Ограничиваем 12 результатами
+            // Используем стабильные источники
+            imageCache = [
+                ...await getNaturePhotos(query),
+                ...await getAnimalPhotos(query),
+                ...await getFoodPhotos(query)
+            ].filter(img => img); // Фильтруем пустые значения
 
-            displayResults(images);
+            if (imageCache.length === 0) {
+                showMessage('😕 Ничего не найдено', 'error');
+                return;
+            }
+
+            displayResults(imageCache);
         } catch (error) {
             console.error('Ошибка:', error);
-            showMessage('😞 Не удалось загрузить картинки', 'error');
+            showMessage('⚠️ Ошибка загрузки', 'error');
         } finally {
             searchBtn.disabled = false;
         }
     }
 
-    // 1. Picsum Photos - реалистичные изображения
-    async function getPicsumPhotos(query) {
-        try {
-            const num = Math.floor(Math.random() * 1000);
-            return [
-                `https://picsum.photos/seed/${query}1/300/200`,
-                `https://picsum.photos/seed/${query}2/300/200`,
-                `https://picsum.photos/seed/${query}3/300/200`
-            ];
-        } catch {
-            return [];
-        }
+    // 1. Природа (гарантированно работающий источник)
+    async function getNaturePhotos(query) {
+        const baseUrl = 'https://source.unsplash.com/300x200/?';
+        return [
+            `${baseUrl}${encodeURIComponent(query)},nature`,
+            `${baseUrl}${encodeURIComponent(query)},landscape`,
+            `${baseUrl}${encodeURIComponent(query)},water`
+        ];
     }
 
-    // 2. Placeholder - резервный источник
-    async function getPlaceholderImages(query) {
-        const keywords = encodeURIComponent(query);
+    // 2. Животные (резервный источник)
+    async function getAnimalPhotos(query) {
+        const baseUrl = 'https://source.unsplash.com/300x200/?';
         return [
-            `https://placekitten.com/300/200?image=${Math.floor(Math.random() * 16)}`,
-            `https://placeholder.com/300x200.png?text=${keywords}`,
-            `https://baconmockup.com/300/200`
+            `${baseUrl}${encodeURIComponent(query)},animal`,
+            `${baseUrl}${encodeURIComponent(query)},cat`,
+            `${baseUrl}${encodeURIComponent(query)},dog`
+        ];
+    }
+
+    // 3. Еда (дополнительный источник)
+    async function getFoodPhotos(query) {
+        const baseUrl = 'https://source.unsplash.com/300x200/?';
+        return [
+            `${baseUrl}${encodeURIComponent(query)},food`,
+            `${baseUrl}${encodeURIComponent(query)},fruit`,
+            `${baseUrl}${encodeURIComponent(query)},dessert`
         ];
     }
 
     function displayResults(images) {
-        if (!images.length) {
-            showMessage('🤷 Ничего не найдено', 'error');
-            return;
-        }
-
-        resultsDiv.innerHTML = images.map(img => `
-            <div class="image-card">
+        resultsDiv.innerHTML = images.map((img, index) => `
+            <div class="image-card" data-id="${index}">
                 <img src="${img}" 
                      alt="Результат поиска"
-                     onerror="this.src='https://placeholder.com/300x200.png?text=Image+Error'">
+                     onerror="this.onerror=null;this.src='https://via.placeholder.com/300x200?text=Image+Error'">
                 <div class="image-actions">
-                    <a href="${img}" target="_blank" download="${img.split('/').pop()}">
-                        ⬇️ Скачать
-                    </a>
-                    <a href="${img}" target="_blank">
+                    <button onclick="window.open('${img}', '_blank')">
                         🔍 Открыть
-                    </a>
+                    </button>
+                    <button onclick="downloadImage('${img}', 'image_${index}.jpg')">
+                        ⬇️ Скачать
+                    </button>
                 </div>
             </div>
         `).join('');
@@ -83,3 +93,16 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsDiv.innerHTML = `<div class="${type}">${text}</div>`;
     }
 });
+
+// Функция для скачивания (добавляем в глобальную область видимости)
+function downloadImage(url, filename) {
+    fetch(url)
+        .then(response => response.blob())
+        .then(blob => {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+        })
+        .catch(() => alert('Не удалось скачать изображение'));
+}

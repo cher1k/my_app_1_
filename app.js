@@ -3,22 +3,37 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('searchInput');
     const resultsDiv = document.getElementById('results');
 
-    // Гарантированные рабочие изображения (50+ вариантов)
-    const localImages = {
-        pizza: [
-            'https://img.freepik.com/free-photo/top-view-pepperoni-pizza-with-mushroom-sausages-bell-pepper-olive-corn-black-wooden_141793-2158.jpg',
-            'https://img.freepik.com/free-photo/top-view-pepperoni-pizza-sliced-into-six-slices_141793-2157.jpg',
+    // База точно соответствующих запросу изображений
+    const imageDatabase = {
+        // Пицца
+        'пицца': [
+            'https://img.freepik.com/free-photo/top-view-pepperoni-pizza_141793-2158.jpg',
+            'https://img.freepik.com/free-photo/tasty-pizza-with-ingredients_23-2148796398.jpg',
             'https://img.freepik.com/free-photo/flat-lay-pizza-slices-arrangement_23-2148773774.jpg'
         ],
-        cats: [
+        'pizza': [
+            'https://img.freepik.com/free-photo/pepperoni-pizza-with-sausages_141793-1780.jpg',
+            'https://img.freepik.com/free-photo/pizza-with-tomatoes_144627-27257.jpg'
+        ],
+        
+        // Кошки
+        'кошки': [
             'https://img.freepik.com/free-photo/red-white-cat-i-white-studio_155003-13189.jpg',
-            'https://img.freepik.com/free-photo/close-up-on-kitten-surrounded-by-flowers_23-2148982288.jpg',
             'https://img.freepik.com/free-photo/beautiful-kitten-with-colorful-flowers-around_23-2148982299.jpg'
         ],
-        nature: [
-            'https://img.freepik.com/free-photo/beautiful-shot-mountain-range-with-lake-front_181624-24925.jpg',
-            'https://img.freepik.com/free-photo/landscape-morning-fog-mountains-with-hot-air-balloons-sunrise_335224-794.jpg',
-            'https://img.freepik.com/free-photo/aerial-view-beautiful-resort-beach-sea_1232-1906.jpg'
+        'коты': [
+            'https://img.freepik.com/free-photo/cute-kitten-staring-out-window_23-2148986298.jpg'
+        ],
+        'cats': [
+            'https://img.freepik.com/free-photo/close-up-on-kitten-surrounded-by-flowers_23-2148982288.jpg'
+        ],
+        
+        // Природа
+        'природа': [
+            'https://img.freepik.com/free-photo/beautiful-shot-mountain-range-with-lake-front_181624-24925.jpg'
+        ],
+        'nature': [
+            'https://img.freepik.com/free-photo/landscape-morning-fog-mountains-with-hot-air-balloons-sunrise_335224-794.jpg'
         ]
     };
 
@@ -37,26 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         setTimeout(() => {
             try {
-                let images = [];
-                
-                if (query.includes('пицц') || query.includes('pizza')) {
-                    images = [...localImages.pizza];
-                } 
-                else if (query.includes('кот') || query.includes('кош') || query.includes('cat')) {
-                    images = [...localImages.cats];
-                }
-                else if (query.includes('природ') || query.includes('пейзаж') || query.includes('nature')) {
-                    images = [...localImages.nature];
-                }
-                else {
-                    // Для других запросов - смешиваем все категории
-                    images = [
-                        ...localImages.pizza,
-                        ...localImages.cats,
-                        ...localImages.nature
-                    ].sort(() => 0.5 - Math.random()).slice(0, 9);
-                }
-
+                const images = getExactMatches(query);
                 displayResults(images);
             } catch (error) {
                 console.error('Ошибка:', error);
@@ -65,6 +61,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 searchBtn.disabled = false;
             }
         }, 300);
+    }
+
+    function getExactMatches(query) {
+        // Точное соответствие запросу
+        if (imageDatabase[query]) {
+            return imageDatabase[query];
+        }
+        
+        // Поиск частичных совпадений
+        for (const [key, images] of Object.entries(imageDatabase)) {
+            if (query.includes(key)) {
+                return images;
+            }
+        }
+        
+        // Если ничего не найдено
+        return [];
     }
 
     function displayResults(images) {
@@ -76,7 +89,8 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsDiv.innerHTML = images.map((img, index) => `
             <div class="image-card">
                 <img src="${img}" 
-                     alt="Результат поиска"
+                     alt="${searchInput.value}"
+                     loading="lazy"
                      onerror="this.onerror=null;this.src='https://via.placeholder.com/300x200?text=Изображение+не+загружено'">
                 <div class="image-actions">
                     <button onclick="window.open('${img}', '_blank')">
@@ -102,8 +116,4 @@ document.addEventListener('DOMContentLoaded', () => {
     function showMessage(text, type) {
         resultsDiv.innerHTML = `<div class="${type}">${text}</div>`;
     }
-
-    // Автопоиск при загрузке
-    searchInput.value = 'пицца';
-    executeSearch();
 });

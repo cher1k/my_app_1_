@@ -5,17 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Умный поиск картинок</title>
     <link rel="stylesheet" href="styles.css">
-    <link rel="manifest" href="manifest.json">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&family=Roboto:wght@300;500&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
-        <h1>🌍 Поиск картинок в интернете</h1>
-        <div class="search-box">
-            <input type="text" id="searchInput" placeholder="Введите запрос...">
-            <button id="searchBtn">Найти</button>
+        <header class="header">
+            <h1>🐾 Умный поиск картинок</h1>
+            <p class="subtitle">Найдите идеальное изображение по запросу</p>
+        </header>
+
+        <div class="search-container">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Попробуйте: кошки, собаки, природа...">
+                <button id="searchBtn">
+                    <span class="search-icon">🔍</span>
+                    <span class="search-text">Найти</span>
+                </button>
+            </div>
+            <div class="search-tips">
+                Популярные запросы: 
+                <span class="tag">котята</span>
+                <span class="tag">щенки</span>
+                <span class="tag">горы</span>
+                <span class="tag">пицца</span>
+            </div>
         </div>
+
         <div id="results" class="image-grid"></div>
+
+        <footer class="footer">
+            <p>© 2024 Поиск картинок | Использует TheCatAPI, TheDogAPI и Unsplash</p>
+        </footer>
     </div>
+
     <script src="app.js"></script>
 </body>
 </html>
